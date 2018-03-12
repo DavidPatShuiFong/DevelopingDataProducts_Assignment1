@@ -1,2 +1,2 @@
 # DevelopingDataProducts_Assignment1
-Medicare PHN and GPs/Population
+General Practitioners, population and Medicare Primary Health Network
