@@ -1,0 +1,78 @@
+---
+title: "MedicareLocal_GPPopulation"
+author: "DavidFong"
+date: "12/03/2018"
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+
+### start necessary libraries
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(rlist)
+library(gdata)
+library(ggplot2)
+library(knitr)
+
+### set figure save path to figure/
+knitr::opts_chunk$set(fig.path = 'figure/')
+knitr::opts_chunk$set(fig.width=12, fig.height=8) 
+
+```
+
+# Download data files
+
+Population data in Australia 2009 to 2014, grouped by Statistical Area Level 3 (SA3) from http://www.health.gov.au/internet/main/publishing.nsf/Content/PHN-Demographic_Data
+
+Primary Health Network ('PHN') map data from http://www.health.gov.au/internet/main/publishing.nsf/content/phn-boundaries
+
+Concordance table between PHN geographical area and Statistical Area Level 3 from http://www.health.gov.au/internet/main/publishing.nsf/Content/PHN-Concordances
+
+General Practice ('GP', also known as family medicine) workforce by PHN found from Australian Government Health Workforce Data website (http://hwd.health.gov.au/), direct links for General Practitioner data by PHN is not available without login and setting search terms. Pre-downloaded data
+
+```{r pressure, echo=FALSE}
+### download data ZIP file if necessary, and extract if necessary
+
+url.phnboundaries <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/20FD74ABB14A1297CA257F150001FD3B/$File/PHN_boundaries_AUS_May2017_V7_Shapefile.zip'
+
+if (!file.exists('PHN_boundaries_AUS_May2017_V7.shp')) {
+  if (!file.exists('PHNboundaries.zip')) {
+    if (download.file(url.phnboundaires,'PHNboundaries.zip')) {
+      stop('Unable to download data file')
+    }
+  }
+}
+
+url.populations <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/AEADA0341B987748CA257F15000413F6/$File/PopulationReport.xlsx'
+
+if (!file.exists('PopulationReport.xlsx')) {
+  if (download.file(url.phnboundaires,'PopulationReport.xlsx')) {
+    stop('Unable to download data file')
+  }
+}
+
+url.concordance <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/4FAAB33C3ED3E520CA257F150001FD3A/$File/CG_SA3_2011_PHN_2015.xls'
+# this is the 2011 SA3 names, which is required for 2009 to 2014 population data
+
+if (!file.exists('CGSA3_2011PHN2015.xlsx')) {
+  if (download.file(url.phnboundaires,'CGSA3_2011PHN2015.xlsx')) {
+    stop('Unable to download data file')
+  }
+}
+```
+
