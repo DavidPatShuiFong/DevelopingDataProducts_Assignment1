@@ -32,6 +32,8 @@ library(foreign)
 
 library(ggplot2)
 library(knitr)
+library(leaflet)
+library(ggmap)
 
 ### set figure save path to figure/
 knitr::opts_chunk$set(fig.path = 'figure/')
@@ -74,9 +76,14 @@ if (!file.exists('PopulationReport.xlsx')) {
   }
 }
 
-population.2014 <- as.tibble(read.xlsx('PopulationReport.xlsx', sheetName = 'Pop2014', startRow = 8, header = FALSE))
+population.2014 <- as.tibble(read.xlsx('PopulationReport.xlsx', sheetName = 'Pop2014', startRow = 9, endRow = 359, header = FALSE))
 
 names(population.2014) <- c('Region','Region2','Nothing','AllAges','Age0_4','Age5_9','Age10_14','Age15_19','Age20_24','Age25_29','Age30_34','Age35_39','Age40_44','Age45_49','Age50_54','Age55_59','Age60_64','Age65_69','Age70_74','Age75_79','Age80_84','Age85plus')
+
+population.2014 <- population.2014 %>%
+  select(-Nothing,-Region) %>%
+  rename(Region = Region2)
+# the original 'Region' variable had leading spaces/tabs
 
 url.concordance <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/4FAAB33C3ED3E520CA257F150001FD3A/$File/CG_SA3_2011_PHN_2015.xls'
 # this is the 2011 SA3 names, which is required for 2009 to 2014 population data
@@ -91,8 +98,18 @@ sa3.phn.concordance <- as.tibble(read.xlsx('CGSA3_2011PHN2015.xlsx', sheetName =
 
 names(sa3.phn.concordance) <-  c('SA3_CODE_2011','SA3_NAME_2011','PHN_CODE','PHN_NAME','RATIO','PERCENTAGE')
 
-gp.numbers <- read.csv('table_2018-03-12_14-41-09.csv', skip = 11)
+gp.numbers <- as.tibble(read.csv('table_2018-03-12_14-41-09.csv', skip = 11, row.names = NULL))
 # number of general practitioners 'GP' in each primary health network (PHN) 2016
+names(gp.numbers) <- c('PHN','number','X')
+gp.numbers <- gp.numbers %>%
+  select(-X)
 
 ```
-
+``` {r}
+p1 <- leaflet(oz.phn.map) %>% 
+  addTiles() %>%
+  addPolygons(color="444444",weight=1,
+              smoothFactor=0.5,opacity=1.0,fillOpacity = 0.5,
+              highlightOptions =
+                highlightOptions(color='white',weight=2,bringToFront = TRUE))
+```
