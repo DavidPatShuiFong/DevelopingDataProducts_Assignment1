@@ -1,0 +1,47 @@
+SuperWEB2(tm)
+
+"National Health Workforce Dataset"
+"Primary Health Network by Year by Primary Speciality"
+"Counting: Number of Practitioners"
+
+Filters:
+"Default Summation","Number of Practitioners"
+"Primary Speciality","General practice"
+
+"Year","2016",
+"Primary Health Network",
+"Central and Eastern Sydney",1692,
+"Northern Sydney",964,
+"Western Sydney",863,
+"Nepean Blue Mountains",291,
+"South Western Sydney",761,
+"South Eastern NSW",555,
+"Western NSW",224,
+"Hunter New England and Central Coast",1131,
+"North Coast",521,
+"Murrumbidgee",155,
+"North Western Melbourne",1517,
+"Eastern Melbourne",1484,
+"South Eastern Melbourne",1412,
+"Gippsland",208,
+"Murray",461,
+"Western Victoria",542,
+"Brisbane North",1174,
+"Brisbane South",1129,
+"Gold Coast",607,
+"Darling Downs and West Moreton",465,
+"Western Queensland",95,
+"Central Queensland",801,
+"Northern Queensland",703,
+"Adelaide",1388,
+"Country SA",439,
+"Perth North",1023,
+"Perth South",842,
+"Country WA",544,
+"Tasmania",584,
+"Northern Territory",271,
+"Australian Capital Territory",413,
+"Overseas/Unknown",12,
+"Total",23271,
+
+
