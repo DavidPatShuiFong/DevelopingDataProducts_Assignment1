@@ -25,7 +25,11 @@ library(tidyverse)
 library(dplyr)
 library(lubridate)
 library(rlist)
+library(rgdal)
 library(gdata)
+library(xlsx)
+library(foreign)
+
 library(ggplot2)
 library(knitr)
 
@@ -52,27 +56,43 @@ url.phnboundaries <- 'http://www.health.gov.au/internet/main/publishing.nsf/Cont
 
 if (!file.exists('PHN_boundaries_AUS_May2017_V7.shp')) {
   if (!file.exists('PHNboundaries.zip')) {
-    if (download.file(url.phnboundaires,'PHNboundaries.zip')) {
+    if (download.file(url.phnboundaries,'PHNboundaries.zip')) {
       stop('Unable to download data file')
     }
+    unzip('PHNboundaries.zip')
   }
 }
+
+oz.phn.map <- readOGR('PHN_boundaries_AUS_May2017_V7.shp')
+oz.phn.description <- read.dbf('PHN_boundaries_AUS_May2017_V7.dbf')
 
 url.populations <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/AEADA0341B987748CA257F15000413F6/$File/PopulationReport.xlsx'
 
 if (!file.exists('PopulationReport.xlsx')) {
-  if (download.file(url.phnboundaires,'PopulationReport.xlsx')) {
+  if (download.file(url.populations,'PopulationReport.xlsx')) {
     stop('Unable to download data file')
   }
 }
+
+population.2014 <- as.tibble(read.xlsx('PopulationReport.xlsx', sheetName = 'Pop2014', startRow = 8, header = FALSE))
+
+names(population.2014) <- c('Region','Region2','Nothing','AllAges','Age0_4','Age5_9','Age10_14','Age15_19','Age20_24','Age25_29','Age30_34','Age35_39','Age40_44','Age45_49','Age50_54','Age55_59','Age60_64','Age65_69','Age70_74','Age75_79','Age80_84','Age85plus')
 
 url.concordance <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/4FAAB33C3ED3E520CA257F150001FD3A/$File/CG_SA3_2011_PHN_2015.xls'
 # this is the 2011 SA3 names, which is required for 2009 to 2014 population data
 
 if (!file.exists('CGSA3_2011PHN2015.xlsx')) {
-  if (download.file(url.phnboundaires,'CGSA3_2011PHN2015.xlsx')) {
+  if (download.file(url.concordance,'CGSA3_2011PHN2015.xlsx')) {
     stop('Unable to download data file')
   }
 }
+
+sa3.phn.concordance <- as.tibble(read.xlsx('CGSA3_2011PHN2015.xlsx', sheetName = 'Table 3', startRow = 8, header = FALSE))
+
+names(sa3.phn.concordance) <-  c('SA3_CODE_2011','SA3_NAME_2011','PHN_CODE','PHN_NAME','RATIO','PERCENTAGE')
+
+gp.numbers <- read.csv('table_2018-03-12_14-41-09.csv', skip = 11)
+# number of general practitioners 'GP' in each primary health network (PHN) 2016
+
 ```
 
