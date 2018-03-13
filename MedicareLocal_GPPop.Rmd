@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # General Practitioners and population by Medicare Primary Health Network area
 
-```{r}
+```{r message = FALSE}
 
 ### start necessary libraries
 
@@ -43,7 +43,7 @@ knitr::opts_chunk$set(fig.width=12, fig.height=8)
 
 ```
 
-# Download data files
+# Download and import data files
 
 Population data in Australia 2009 to 2014, grouped by Statistical Area Level 3 (SA3) from http://www.health.gov.au/internet/main/publishing.nsf/Content/PHN-Demographic_Data
 
@@ -51,11 +51,14 @@ Primary Health Network ('PHN') map data from http://www.health.gov.au/internet/m
 
 Concordance table between PHN geographical area and Statistical Area Level 3 from http://www.health.gov.au/internet/main/publishing.nsf/Content/PHN-Concordances
 
-General Practice ('GP', also known as family medicine) workforce by PHN found from Australian Government Health Workforce Data website (http://hwd.health.gov.au/), direct links for General Practitioner data by PHN is not available without login and setting search terms. Pre-downloaded data
+General Practice ('GP', also known as family medicine) workforce by PHN found from Australian Government Health Workforce Data website (http://hwd.health.gov.au/), direct links for General Practitioner data by PHN is not available without login and setting search terms. Pre-downloaded 2016 data.
 
 ```{r pressure, echo=FALSE}
-### download data ZIP file if necessary, and extract if necessary
 
+# download data files if necessary, and extract if necessary
+# minimal processing to rename variables and remove variables not required
+
+# Primary Health Network map boundaires
 url.phnboundaries <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/20FD74ABB14A1297CA257F150001FD3B/$File/PHN_boundaries_AUS_May2017_V7_Shapefile.zip'
 
 if (!file.exists('PHN_boundaries_AUS_May2017_V7.shp')) {
@@ -66,20 +69,19 @@ if (!file.exists('PHN_boundaries_AUS_May2017_V7.shp')) {
     unzip('PHNboundaries.zip')
   }
 }
-
 oz.phn.map <- readOGR('PHN_boundaries_AUS_May2017_V7.shp')
+# map data includes the list of PHNs in a DBF
 oz.phn.description <- read.dbf('PHN_boundaries_AUS_May2017_V7.dbf')
 
+# Populations, in Statistical Area 3 (SA3) areas
 url.populations <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/AEADA0341B987748CA257F15000413F6/$File/PopulationReport.xlsx'
-
 if (!file.exists('PopulationReport.xlsx')) {
   if (download.file(url.populations,'PopulationReport.xlsx', method = 'curl')) { # method 'curl' required for Windows
     stop('Unable to download data file')
   }
 }
-
 population.2014 <- as.tibble(read.xlsx('PopulationReport.xlsx', sheetName = 'Pop2014', startRow = 9, endRow = 359, header = FALSE))
-
+# variable names needs to be added back into population table
 names(population.2014) <- c('Region','Region2','Nothing','AllAges','Age0_4','Age5_9','Age10_14','Age15_19','Age20_24','Age25_29','Age30_34','Age35_39','Age40_44','Age45_49','Age50_54','Age55_59','Age60_64','Age65_69','Age70_74','Age75_79','Age80_84','Age85plus')
 
 population.2014 <- population.2014 %>%
@@ -88,16 +90,16 @@ population.2014 <- population.2014 %>%
 # the original 'Region' variable had leading spaces/tabs
 
 url.concordance <- 'http://www.health.gov.au/internet/main/publishing.nsf/Content/4FAAB33C3ED3E520CA257F150001FD3A/$File/CG_SA3_2011_PHN_2015.xls'
+# The correlation between Primary Health Network (PHN) zones and Statistical Area 3 (SA3) areas
+# There may be multiple SA3s in a PHN, and a SA3 might span over the 'boundary' between PHNs
 # this is the 2011 SA3 names, which is required for 2009 to 2014 population data
-
+# 
 if (!file.exists('CGSA3_2011PHN2015.xlsx')) {
   if (download.file(url.concordance,'CGSA3_2011PHN2015.xlsx', method = 'curl')) {
     stop('Unable to download data file')
   }
 }
-
 sa3.phn.concordance <- as.tibble(read.xlsx('CGSA3_2011PHN2015.xlsx', sheetName = 'Table 3', startRow = 8, header = FALSE))
-
 names(sa3.phn.concordance) <-  c('SA3_CODE_2011','SA3_NAME_2011','PHN_CODE','PHN_NAME','RATIO','PERCENTAGE')
 
 gp.numbers <- as.tibble(read.csv('table_2018-03-12_14-41-09.csv', skip = 11, row.names = NULL))
@@ -108,33 +110,71 @@ gp.numbers <- gp.numbers %>%
 gp.numbers[gp.numbers$PHN_NAME == 'Central Queensland','PHN_NAME'] <- 'Central Queensland, Wide Bay, Sunshine Coast'
 
 ```
+# Place information into Map file
+
+Places Population, General Practitioner numbers and Population per General practitioner information into map file
+
+Creates a data frame with
+
+- **PHN_NAME** containing primary health network (PHN) name
+- **population** population in each PHN 
+- **gp** - general practitioners in each PHN
+- **pop.gp.ratio** - population for every GP in each PHN
+
 ``` {r}
+# choose all ages statistic
 select.age.population <- select(population.2014, SA3_NAME_2011, AllAges)
 
-sa3.phn.concordance <- sa3.phn.concordance %>%
-  merge(select.age.population, by = 'SA3_NAME_2011') %>%
-  mutate(PHN_Number = as.numeric(AllAges)*as.numeric(RATIO))
-
+# calculate population in each PHN
 phn.population <- sa3.phn.concordance %>%
+  merge(select.age.population, by = 'SA3_NAME_2011') %>%
+  # merge population numbers by SA3 areas
+  mutate(PHN_Number = as.numeric(AllAges)*as.numeric(RATIO)) %>%
+  # calculate population in each SA3 as proportion in each PHN
+  # some SA3 are spread across more than one PHN
   group_by(PHN_NAME) %>%
-  summarize(patients = sum(PHN_Number))
+  # PHN can have multiple SA3
+  summarize(population = sum(PHN_Number)) 
 
-```
-
-``` {r}
-
+# add GP information to each PHN
+# calculate population per GP ratio in each PHN
 combined.oz.phn.description <- oz.phn.description %>%
   merge(gp.numbers, by = 'PHN_NAME') %>%
   merge(phn.population, by = 'PHN_NAME') %>%
-  mutate(pop.gp.ratio = patients/gp)
+  mutate(pop.gp.ratio = population/gp) %>%
+  # just select the variables that we need
+  select(PHN_NAME, gp, population, pop.gp.ratio)
 
 ```
 
+## add extra map data to the map
+
 ``` {r}
+
+oz.phn.map@data <-  merge(oz.phn.map@data, combined.oz.phn.description, by = 'PHN_NAME')
+
+```
+
+# Population and General Practitioner numbers in Australia, by Primary Health Network areas
+
+* Population figures - 2014
+* General practitioner figures - 2016
+
+``` {r messages=FALSE}
+
+oz_loc <- geocode("Australia")
+
 p1 <- leaflet(oz.phn.map) %>% 
-  addTiles() %>%
-  addPolygons(color="444444",weight=1,
-              smoothFactor=0.5,opacity=1.0,fillOpacity = 0.5,
+  addTiles() %>% # base map, usually OpenStreetMap
+  setView(lng = oz_loc$lon, lat = oz_loc$lat, zoom = 3.5) %>% # set view
+  addPolygons(color="#444444",weight=1, smoothFactor=0.5,
+              opacity=1.0, fillOpacity = 0.5,
+              popup = ~paste(PHN_NAME, '<br>Population :',
+                             sprintf('%.0f',population),
+                             '<br>GPs :', gp,
+                             '<br>Population to GP :',
+                             sprintf('%.0f',pop.gp.ratio)),
+              fillColor = ~colorQuantile("YlOrRd", pop.gp.ratio)(pop.gp.ratio),
               highlightOptions =
                 highlightOptions(color='white',weight=2,bringToFront = TRUE))
 ```
