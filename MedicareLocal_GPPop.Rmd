@@ -1,6 +1,6 @@
 ---
 title: "MedicareLocal_GPPopulation"
-author: "DavidFong"
+author: "David Fong"
 date: "12/03/2018"
 output:
   html_document:
@@ -25,14 +25,12 @@ library(rgdal)
 
 library(tidyverse)
 library(dplyr)
-library(lubridate)
-# library(rlist)
-# library(gdata)
 
 # reproducible research library
 library(knitr)
 
 # plotting and maps libraries
+library(rmapshaper) # for simplifying maps
 library(ggplot2)
 library(leaflet)
 library(ggmap)
@@ -160,15 +158,18 @@ oz.phn.map@data <-  merge(oz.phn.map@data, combined.oz.phn.description, by = 'PH
 * Population figures - 2014
 * General practitioner figures - 2016
 
+'Click' on region to reveal Population and GP numbers
+
 ``` {r messages=FALSE}
 
-oz_loc <- geocode("Australia")
+oz_loc <- geocode('Australia', source='dsk')
 
-p1 <- leaflet(oz.phn.map) %>% 
+phn.map <- ms_simplify(oz.phn.map) %>% # reduce points to about 5% of original
+  leaflet() %>% # the map generator
   addTiles() %>% # base map, usually OpenStreetMap
-  setView(lng = oz_loc$lon, lat = oz_loc$lat, zoom = 3.5) %>% # set view
-  addPolygons(color="#444444",weight=1, smoothFactor=0.5,
-              opacity=1.0, fillOpacity = 0.5,
+  setView(lng = oz_loc$lon, lat = oz_loc$lat, zoom = 4) %>% # set view
+  addPolygons(color="#444444", weight=1, smoothFactor=0.5,
+              opacity=0.8, fillOpacity = 0.15,
               popup = ~paste(PHN_NAME, '<br>Population :',
                              sprintf('%.0f',population),
                              '<br>GPs :', gp,
@@ -176,5 +177,8 @@ p1 <- leaflet(oz.phn.map) %>%
                              sprintf('%.0f',pop.gp.ratio)),
               fillColor = ~colorQuantile("YlOrRd", pop.gp.ratio)(pop.gp.ratio),
               highlightOptions =
-                highlightOptions(color='white',weight=2,bringToFront = TRUE))
+                highlightOptions(color='green',weight=2,bringToFront = TRUE))
+
+phn.map
 ```
+'Click' on region to reveal Population and GP numbers
